@@ -1,0 +1,410 @@
+/*******************************************************************************
+ * HARDWARE SETUP & TROUBLESHOOTING CHECKLIST
+ * 
+ * Use this before uploading code to ensure everything is connected correctly
+ ******************************************************************************/
+
+================================================================================
+PRE-FLIGHT HARDWARE CHECKLIST
+================================================================================
+
+BEFORE YOU START - GATHER THESE ITEMS:
+□ Arduino UNO with USB cable
+□ MPU6050 IMU module (6-axis gyro+accelerometer)
+□ L298N motor driver module
+□ 2x DC geared motors (with wheels attached)
+□ Battery (7.4V - 12V recommended, 2S LiPo or 2S Li-ion)
+□ Jumper wires (male-to-male and male-to-female)
+□ Breadboard (optional, for testing)
+□ Multimeter (for voltage checking)
+□ Screwdriver
+□ Chassis/mounting platform
+
+================================================================================
+STEP 1: MPU6050 CONNECTIONS
+================================================================================
+
+MPU6050 Pin    →    Arduino UNO Pin    │ Notes
+─────────────────────────────────────────┼──────────────────────────────
+VCC            →    5V                  │ Power supply
+GND            →    GND                 │ Ground
+SCL            →    A5                  │ I2C clock
+SDA            →    A4                  │ I2C data
+INT            →    Digital Pin 2       │ Interrupt (optional in this code)
+AD0            →    Leave unconnected   │ I2C address select (default LOW)
+XDA, XCL       →    Leave unconnected   │ Not used
+
+VERIFICATION STEPS:
+1. □ Check all wires are firmly connected
+2. □ Verify VCC goes to 5V (NOT 3.3V)
+3. □ Verify GND is connected
+4. □ Check SCL/SDA are not swapped
+5. □ MPU6050 LED (if present) should light up when Arduino powered
+
+MOUNTING:
+- Mount MPU6050 FLAT on robot chassis
+- Orient so that:
+  * USB port points UPWARD when robot is upright
+  * Chip components face forward
+  * No vibration isolation needed for this application
+
+TEST MPU6050 (BEFORE FULL ASSEMBLY):
+1. Upload this simple test code:
+   
+   #include <Wire.h>
+   void setup() {
+     Serial.begin(115200);
+     Wire.begin();
+     Wire.beginTransmission(0x68);
+     byte error = Wire.endTransmission();
+     if (error == 0) Serial.println("MPU6050 found!");
+     else Serial.println("MPU6050 NOT found!");
+   }
+   void loop() {}
+   
+2. Open Serial Monitor (115200 baud)
+3. Should see "MPU6050 found!"
+4. If not found:
+   - Check wiring
+   - Try address 0x69 (if AD0 is HIGH)
+   - Check solder joints on MPU6050 module
+
+================================================================================
+STEP 2: L298N MOTOR DRIVER CONNECTIONS
+================================================================================
+
+L298N Pin      →    Arduino UNO Pin    │ Notes
+─────────────────────────────────────────┼──────────────────────────────
+ENA            →    Pin 5 (PWM)         │ Left motor speed control
+IN1            →    Pin 6               │ Left motor direction
+IN2            →    Pin 7               │ Left motor direction
+IN3            →    Pin 8               │ Right motor direction
+IN4            →    Pin 9               │ Right motor direction
+ENB            →    Pin 10 (PWM)        │ Right motor speed control
+
+L298N POWER CONNECTIONS:
+Battery +12V   →    L298N +12V terminal
+Battery GND    →    L298N GND terminal
+L298N GND      →    Arduino GND (CRITICAL - must share ground!)
+L298N 5V       →    (optional) Arduino 5V or Vin
+
+MOTOR CONNECTIONS:
+OUT1, OUT2     →    Left Motor (polarity doesn't matter yet)
+OUT3, OUT4     →    Right Motor (polarity doesn't matter yet)
+
+L298N JUMPER SETTINGS:
+- ENA jumper: REMOVE (we control speed via PWM from Arduino)
+- ENB jumper: REMOVE (we control speed via PWM from Arduino)
+- 5V regulator jumper: 
+  * If battery is 7-12V: KEEP jumper ON (L298N provides 5V to Arduino)
+  * If battery is >12V: REMOVE jumper (use separate 5V supply)
+
+VERIFICATION STEPS:
+1. □ All control wires connected to correct Arduino pins
+2. □ Battery connected to L298N power terminals
+3. □ L298N GND connected to Arduino GND (CRITICAL!)
+4. □ ENA/ENB jumpers REMOVED
+5. □ Motors connected to outputs
+6. □ Battery voltage is 7-12V (check with multimeter)
+
+TEST MOTORS (BEFORE FULL ASSEMBLY):
+1. Upload this test code:
+
+   void setup() {
+     pinMode(5, OUTPUT);  // ENA
+     pinMode(6, OUTPUT);  // IN1
+     pinMode(7, OUTPUT);  // IN2
+     pinMode(8, OUTPUT);  // IN3
+     pinMode(9, OUTPUT);  // IN4
+     pinMode(10, OUTPUT); // ENB
+   }
+   
+   void loop() {
+     // Left motor forward
+     digitalWrite(6, HIGH);
+     digitalWrite(7, LOW);
+     analogWrite(5, 100);
+     
+     // Right motor forward
+     digitalWrite(8, HIGH);
+     digitalWrite(9, LOW);
+     analogWrite(10, 100);
+     
+     delay(2000);
+     
+     // Stop
+     analogWrite(5, 0);
+     analogWrite(10, 0);
+     delay(2000);
+   }
+
+2. Both motors should spin FORWARD for 2 seconds, stop for 2 seconds, repeat
+3. If motor spins backward: Swap its OUT1/OUT2 or OUT3/OUT4 wires
+4. If motor doesn't spin: Check wiring, check battery
+
+================================================================================
+STEP 3: BATTERY VOLTAGE SENSING (OPTIONAL BUT RECOMMENDED)
+================================================================================
+
+PURPOSE: Allows robot to compensate for battery drain
+
+COMPONENTS NEEDED:
+- 10kΩ resistor
+- 4.7kΩ resistor (or 5kΩ)
+- Wires
+
+VOLTAGE DIVIDER CIRCUIT:
+
+Battery +  ──┬── 10kΩ resistor ──┬── A0 (Arduino)
+             │                    │
+             │                 4.7kΩ resistor
+             │                    │
+Battery -  ──┴────────────────────┴── GND (Arduino)
+
+WHY: Arduino can only read 0-5V on analog pins. Battery is 7.4V+.
+     Voltage divider scales it down.
+
+CALCULATION:
+Vout = Vin × (R2 / (R1 + R2))
+     = Vin × (4.7 / (10 + 4.7))
+     = Vin × 0.32
+
+Example: 7.4V battery → 7.4 × 0.32 = 2.37V at A0 (safe for Arduino)
+
+VERIFICATION:
+1. Measure battery voltage with multimeter (e.g., 7.4V)
+2. Measure voltage at A0 with multimeter (e.g., 2.37V)
+3. Calculate ratio: 7.4 / 2.37 = 3.12
+4. Update code line 48:
+   #define VOLTAGE_DIVIDER_RATIO 3.12
+
+IF YOU SKIP THIS STEP:
+- Robot will work fine when battery is full
+- Performance will degrade as battery drains
+- Code will still work, just without compensation
+
+================================================================================
+STEP 4: MECHANICAL ASSEMBLY
+================================================================================
+
+CRITICAL REQUIREMENTS:
+□ Wheels must be directly under robot (center of gravity above wheel axle)
+□ MPU6050 must be centered and aligned with wheels
+□ Battery mounted low (for low center of gravity)
+□ All wiring secured (won't interfere with wheels)
+□ Robot can stand upright without falling
+
+RECOMMENDED DESIGN:
+          ┌─────────────┐
+          │  MPU6050    │
+          │   Arduino   │
+          │  L298N      │
+          │  Battery    │ ← Mount lowest
+          └──┬─────┬────┘
+             │     │
+          ┌──┴─┐ ┌─┴──┐
+          │ ●  │ │  ● │ ← Wheels (directly under)
+          └────┘ └────┘
+
+TIPS:
+- Lower center of gravity = easier to balance
+- Wheel size: 60-100mm diameter works well
+- Gear ratio: 1:30 to 1:100 (slower = easier to control)
+- Weight: Heavier = more stable but needs more torque
+
+================================================================================
+STEP 5: COMMON WIRING MISTAKES
+================================================================================
+
+SYMPTOM: Arduino won't power on
+CAUSE: Check battery voltage, check L298N connections
+
+SYMPTOM: MPU6050 not detected
+CAUSE: SDA/SCL swapped, wrong power (must be 5V), bad connections
+
+SYMPTOM: Motors don't move
+CAUSE: 
+- ENA/ENB jumpers still on L298N
+- Battery not connected
+- Wrong pins
+- Dead battery
+
+SYMPTOM: One motor works, one doesn't
+CAUSE:
+- Loose wire on non-working motor
+- Defective motor (test with direct battery connection)
+
+SYMPTOM: Motors spin weakly
+CAUSE:
+- Battery voltage too low (check voltage)
+- MOTOR_DEAD_ZONE too low in code
+- Battery can't supply enough current (use higher C-rating)
+
+SYMPTOM: Robot restarts randomly
+CAUSE:
+- Battery voltage sag under load
+- Loose power connections
+- Insufficient decoupling (add 100μF capacitor across Arduino power)
+
+SYMPTOM: Sensors give garbage values
+CAUSE:
+- No common ground between Arduino and L298N
+- Motor noise interfering (add 100nF capacitors across motor terminals)
+
+================================================================================
+STEP 6: RECOMMENDED IMPROVEMENTS (HARDWARE)
+================================================================================
+
+FOR BETTER PERFORMANCE, ADD:
+
+1. CAPACITORS (Highly Recommended)
+   - 100μF electrolytic: Across Arduino Vin and GND
+   - 100μF electrolytic: Across L298N +12V and GND
+   - 100nF ceramic: Across each motor terminal
+   
+   WHY: Reduces electrical noise, prevents resets, smoother operation
+
+2. EMERGENCY STOP SWITCH (Recommended)
+   - In series with battery positive wire
+   - Allows quick power-off if robot goes crazy
+   
+   WHY: Safety and convenience
+
+3. LED INDICATORS (Optional)
+   - Power LED: Shows system is on
+   - Status LED: Connected to Pin 13, blink when balanced
+   
+   WHY: Visual feedback helpful for debugging
+
+4. BATTERY LEVEL INDICATOR (Optional)
+   - Multi-color LED on voltage divider output
+   - Green = full, Yellow = medium, Red = low
+   
+   WHY: Know when to charge battery
+
+================================================================================
+STEP 7: FINAL PRE-UPLOAD CHECKLIST
+================================================================================
+
+BEFORE UPLOADING MAIN CODE:
+
+POWER:
+□ Battery voltage measured (7.4V - 12V range)
+□ All grounds connected together
+□ Power switch accessible
+
+SENSORS:
+□ MPU6050 detected (run I2C scanner test)
+□ MPU6050 mounted flat and secure
+□ No loose wires
+
+MOTORS:
+□ Both motors tested and spin correctly
+□ Motor directions correct (both forward or both backward)
+□ Wheels attached and spin freely
+□ No mechanical binding
+
+WIRING:
+□ All connections verified against wiring diagram
+□ No shorts (use multimeter continuity test)
+□ Wires secured (won't fall off during operation)
+□ Nothing can touch wheels
+
+MECHANICAL:
+□ Robot stands upright
+□ Center of gravity above wheels
+□ Battery mounted low
+□ All components secure
+
+SOFTWARE:
+□ Arduino IDE installed
+□ Libraries installed (Wire, TimerOne)
+□ Correct board selected (Arduino UNO)
+□ Correct port selected
+
+SAFETY:
+□ Clear working area (no obstacles)
+□ Emergency stop available (unplug battery or USB)
+□ Surface is flat and stable
+□ Prepared to catch robot if it falls
+
+================================================================================
+STEP 8: UPLOAD AND FIRST RUN
+================================================================================
+
+1. Connect Arduino via USB
+2. Open improved code in Arduino IDE
+3. Verify code compiles (checkmark button)
+4. Upload code (arrow button)
+5. Open Serial Monitor (115200 baud)
+6. Should see initialization messages
+7. Hold robot UPRIGHT and STILL
+8. Wait for "Calibration complete!"
+9. Gently release robot
+10. Observe behavior
+
+FIRST RUN EXPECTATIONS:
+- Robot will TRY to balance
+- May oscillate (normal, needs tuning)
+- May drift (normal, needs tuning)
+- Should respond to tilt
+- Motors should make corrective movements
+
+IF ROBOT FALLS IMMEDIATELY:
+1. Check motor directions (might be reversed)
+2. Check MPU6050 orientation
+3. Increase Kp in code
+4. Re-calibrate (must be perfectly upright)
+
+IF ROBOT BALANCES:
+Congratulations! Now proceed to tuning guide for optimization.
+
+================================================================================
+TROUBLESHOOTING QUICK REFERENCE
+================================================================================
+
+Serial Monitor shows: "MPU6050 NOT found!"
+→ Check MPU6050 wiring, especially SDA/SCL
+
+Motors don't move at all:
+→ Check battery, L298N jumpers, motor wiring
+
+One motor doesn't move:
+→ Check specific motor connections, try swapping motors
+
+Robot falls one direction always:
+→ One motor might be weaker, adjust trim in code
+→ Or wheels different sizes
+
+Robot oscillates violently:
+→ Reduce Kp gain, increase Kd gain
+
+Robot doesn't respond to tilt:
+→ Increase Kp gain, check motor direction
+
+Serial Monitor shows garbage:
+→ Wrong baud rate (must be 115200)
+
+Arduino keeps resetting:
+→ Add capacitors, check power supply
+
+================================================================================
+SAFETY REMINDERS
+================================================================================
+
+⚠️  IMPORTANT SAFETY NOTES:
+- LiPo batteries can catch fire if damaged or shorted
+- Always use proper LiPo charging
+- Never leave charging unattended
+- Disconnect battery when not in use
+- Add a fuse (5A) in battery line for protection
+- Test in safe area away from fragile items
+- Have fire extinguisher nearby when testing batteries
+- Wear safety glasses during testing
+
+================================================================================
+
+Ready to start? Follow this checklist step by step!
+Each step builds on the previous one - don't skip ahead.
+
+Good luck! 🤖⚡

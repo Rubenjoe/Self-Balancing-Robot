@@ -1,0 +1,306 @@
+/*******************************************************************************
+ * TUNING GUIDE FOR SELF-BALANCING ROBOT
+ * 
+ * This guide will help you tune the PID controller and optimize performance
+ ******************************************************************************/
+
+========================
+PART 1: INITIAL SETUP
+========================
+
+1. UPLOAD THE CODE
+   - Connect Arduino UNO via USB
+   - Open the .ino file in Arduino IDE
+   - Select Board: Tools → Board → Arduino UNO
+   - Select Port: Tools → Port → (select your Arduino's COM port)
+   - Click Upload (arrow button)
+   - Wait for "Done uploading" message
+
+2. OPEN SERIAL MONITOR
+   - Click Tools → Serial Monitor (or Ctrl+Shift+M)
+   - Set baud rate to 115200 (bottom right corner)
+   - You should see initialization messages
+
+3. CALIBRATION
+   - Hold robot PERFECTLY UPRIGHT (like standing on its wheels)
+   - Keep it COMPLETELY STILL
+   - Within 2 seconds, it will calibrate
+   - You'll see "Calibration complete!"
+
+========================
+PART 2: FIRST TEST
+========================
+
+BEFORE RELEASING THE ROBOT:
+- Make sure motors can spin freely
+- Check that wheels aren't touching anything
+- Have emergency stop ready (disconnect battery or USB)
+
+INITIAL TEST:
+1. Hold robot upright
+2. Gently tilt it forward (~5-10 degrees)
+3. Release slowly
+4. Observe what happens:
+
+   GOOD SIGNS:
+   ✓ Motors spin to counteract tilt
+   ✓ Robot tries to balance
+   ✓ Oscillations are small and damped
+   
+   BAD SIGNS:
+   ✗ Motors spin wrong direction → Reverse motor wires
+   ✗ Violent oscillations → Reduce Kp
+   ✗ No response → Check wiring, increase Kp
+   ✗ Robot drifts continuously → Normal, will tune later
+
+========================
+PART 3: PID TUNING
+========================
+
+The code has THREE main gains to tune:
+- KP_ANGLE: How hard to correct angle errors (proportional)
+- KI_ANGLE: How much to eliminate steady-state error (integral)
+- KD_ANGLE: How much to resist change (derivative)
+- KP_VELOCITY: How much to prevent drifting (velocity control)
+
+STEP-BY-STEP TUNING METHOD:
+
+STEP 1: Start with Conservative Values
+-------------------------------------
+In the code, find this section (around line 24):
+
+#define KP_ANGLE 45.0
+#define KI_ANGLE 180.0
+#define KD_ANGLE 1.8
+#define KP_VELOCITY 0.15
+
+Change to VERY conservative starting values:
+
+#define KP_ANGLE 20.0      // Start low
+#define KI_ANGLE 0.0       // Turn off integral
+#define KD_ANGLE 0.5       // Start low
+#define KP_VELOCITY 0.0    // Turn off velocity control
+
+Upload and test. Robot probably won't balance yet.
+
+STEP 2: Tune Proportional Gain (Kp)
+---------------------------------
+Goal: Find the Kp that makes robot responsive but not oscillating
+
+1. Start with Kp = 20.0
+2. Test robot
+3. If too slow/weak:
+   - Increase Kp by 5 (e.g., 25, 30, 35...)
+   - Reupload and test after each change
+4. If oscillating/vibrating:
+   - Decrease Kp by 5
+   - Reupload and test
+5. Continue until you find the HIGHEST Kp that doesn't oscillate badly
+   - Some oscillation is OK at this stage
+   - Typical range: 30-60
+
+STEP 3: Tune Derivative Gain (Kd)
+-------------------------------
+Goal: Dampen oscillations and add stability
+
+1. Start with Kd = 0.5
+2. Test robot
+3. If oscillating:
+   - Increase Kd by 0.3 (e.g., 0.8, 1.1, 1.4...)
+   - This adds damping
+4. If too sluggish/slow:
+   - Decrease Kd by 0.2
+5. Continue until oscillations are minimized
+   - Robot should respond quickly but smoothly
+   - Typical range: 1.0-3.0
+
+STEP 4: Tune Integral Gain (Ki)
+-----------------------------
+Goal: Eliminate steady-state error (persistent lean)
+
+WARNING: Ki can make system unstable if too high!
+
+1. Start with Ki = 50.0
+2. Test robot
+3. If robot has steady lean (always tilted slightly):
+   - Increase Ki by 30 (e.g., 80, 110, 140...)
+4. If robot becomes unstable or oscillates:
+   - Decrease Ki by 30
+   - Or set back to 0 and try smaller increments (10, 20, 30...)
+5. Continue until robot stands upright without lean
+   - But BEFORE it becomes unstable
+   - Typical range: 100-250
+
+STEP 5: Tune Velocity Control (Kp_velocity)
+-----------------------------------------
+Goal: Prevent robot from drifting forward/backward
+
+1. Make sure above steps are done first!
+2. Start with KP_VELOCITY = 0.1
+3. Test robot - does it drift in one direction?
+4. If drifts forward:
+   - Increase KP_VELOCITY by 0.05
+5. If drifts backward:
+   - Decrease KP_VELOCITY by 0.05
+6. If becomes unstable:
+   - You increased too much, reduce by 0.1
+7. Continue until robot stays roughly in place
+   - Typical range: 0.1-0.3
+
+========================
+PART 4: FINE-TUNING
+========================
+
+Once robot can balance, optimize these:
+
+1. MOTOR_DEAD_ZONE (line 32)
+   - Too high: Robot sluggish near equilibrium
+   - Too low: Motor chattering/noise
+   - Find minimum PWM that moves motor
+   - Test: Apply 30 PWM - does motor move? Increase until it does
+   - Add 5 to that value
+   - Typical: 30-45
+
+2. MOTOR_MIN_SPEED (line 33)
+   - Active dead-band threshold
+   - Too high: Robot doesn't correct small errors
+   - Too low: Motor chattering
+   - Typical: 15-25
+
+3. MAX_ANGLE (line 52)
+   - Angle at which robot gives up
+   - Too low: Robot gives up too easily
+   - Too high: Robot keeps trying when clearly fallen
+   - Typical: 40-50 degrees
+
+========================
+PART 5: ADVANCED TUNING
+========================
+
+If you want PERFECT performance:
+
+1. ALPHA (Complementary Filter - line 40)
+   - Controls sensor fusion
+   - Higher (0.99): Trust gyro more, less noise, more drift
+   - Lower (0.95): Trust accel more, more noise, less drift
+   - Default 0.98 is usually excellent
+   - Only change if you see drift or jitter
+
+2. Derivative Filter (line 298)
+   - Line: angleDerivativeFiltered = 0.7 * angleDerivativeFiltered + 0.3 * rawDerivative;
+   - First number (0.7): Higher = smoother but slower
+   - Second number (0.3): Must sum to 1.0
+   - Adjust for noise vs responsiveness trade-off
+
+3. Battery Voltage Compensation
+   - If you installed voltage divider on A0:
+     - Measure battery voltage with multimeter
+     - Check Serial Monitor for "V: X.XV"
+     - Adjust VOLTAGE_DIVIDER_RATIO (line 48) until they match
+   - If no voltage sensing:
+     - Set NOMINAL_VOLTAGE to your battery voltage
+
+========================
+PART 6: TROUBLESHOOTING
+========================
+
+PROBLEM: Robot falls immediately
+SOLUTION:
+1. Check motor wiring (might be reversed)
+2. Check MPU6050 orientation (should be flat, USB pointing up)
+3. Increase Kp significantly (try 50-80)
+4. Check calibration - robot must be UPRIGHT during calibration
+
+PROBLEM: Robot oscillates wildly
+SOLUTION:
+1. Reduce Kp by 50%
+2. Reduce Ki to 0
+3. Increase Kd
+4. Check for loose wiring or mechanical slack
+
+PROBLEM: Robot drifts continuously
+SOLUTION:
+1. This is normal before velocity tuning
+2. Tune KP_VELOCITY as described above
+3. Check wheels are same size and aligned
+
+PROBLEM: Motors don't move
+SOLUTION:
+1. Check L298N wiring
+2. Check battery is connected and charged
+3. Check motor power switch on L298N (if present)
+4. Increase MOTOR_DEAD_ZONE
+5. Check Serial Monitor for error messages
+
+PROBLEM: "FIFO overflow" in Serial Monitor
+SOLUTION:
+1. This is OK if occasional
+2. If frequent: Control loop is too slow
+3. Comment out printDebugInfo() function call in loop()
+
+PROBLEM: Robot works for 30 seconds then fails
+SOLUTION:
+1. Battery is draining
+2. Install voltage compensation (A0 pin)
+3. Use higher capacity battery
+4. Check for short circuits
+
+PROBLEM: One motor spins, other doesn't
+SOLUTION:
+1. Check motor connections
+2. Motors might have different characteristics
+3. Adjust motor speed factors (currently both 1.0):
+   - In the code, you can add motor trim
+   - Example: If left motor weaker, multiply its PWM by 1.1
+
+========================
+PART 7: OPTIMIZATION CHECKLIST
+========================
+
+For competition/demonstration:
+
+□ PID gains tuned (Kp, Ki, Kd)
+□ Velocity control tuned (Kp_velocity)
+□ Dead zone calibrated (MOTOR_DEAD_ZONE)
+□ Robot balances for >30 seconds
+□ Robot recovers from small pushes
+□ Battery voltage compensation working
+□ Minimal drift (<1 meter in 30 seconds)
+□ No excessive oscillation
+□ Quiet operation (no motor whining)
+□ Tested on different surfaces
+
+========================
+PART 8: PERFORMANCE METRICS
+========================
+
+GOOD performance indicators:
+- Balances for >60 seconds continuously
+- Recovers from gentle pushes
+- Stays within 1 meter radius for 30 seconds
+- Smooth, quiet motor operation
+- Works from full to 70% battery
+
+EXCELLENT performance indicators:
+- Balances for >5 minutes
+- Recovers from moderate pushes
+- Stays within 0.5 meter radius for 60 seconds
+- Nearly silent operation
+- Works down to 50% battery
+
+========================
+END OF TUNING GUIDE
+========================
+
+QUICK REFERENCE - TYPICAL VALUES:
+KP_ANGLE: 40-60
+KI_ANGLE: 150-250
+KD_ANGLE: 1.5-2.5
+KP_VELOCITY: 0.1-0.25
+MOTOR_DEAD_ZONE: 30-45
+ALPHA: 0.98
+
+Remember: Every robot is different!
+These are starting points - tune for YOUR robot.
+
+Good luck! 🤖
