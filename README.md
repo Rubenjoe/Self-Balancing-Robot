@@ -103,7 +103,7 @@ float Ki = 200.0;   // Integral gain
 float Kd = 3.2;     // Derivative gain
 ```
 
-**For different robots**, see [TUNING_GUIDE.md](docs/TUNING_GUIDE.md):
+**For different robots**, see [TUNING_GUIDE.md](docs/TUNING_GUIDE(1).md):
 
 | Robot Type | Kp | Ki | Kd |
 |-----------|----|----|-----|
@@ -206,24 +206,6 @@ python scripts/serial_monitor.py /dev/ttyUSB0 115200
 
 ---
 
-## 🔧 Troubleshooting
-
-### Robot Oscillates
-→ Reduce `Kp` by 5, increase `Kd` by 0.3
-
-### Robot Falls Immediately
-→ Check motor direction, increase `Kp`, verify calibration
-
-### One Motor Doesn't Work
-→ Check L298N jumpers, verify wiring, see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-
-### Serial Monitor Shows Garbage
-→ Set baud rate to **115200**
-
-See [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for complete guide.
-
----
-
 ## 📈 Performance Metrics
 
 ### Expected Results (After Tuning)
@@ -296,9 +278,7 @@ Result: Accurate angle with 100Hz update rate
 ## 📚 Documentation
 
 - [Wiring Diagram](docs/WIRING_DIAGRAM.md) - Complete hardware connections
-- [Tuning Guide](docs/TUNING_GUIDE.md) - Step-by-step PID optimization
-- [Architecture](docs/ARCHITECTURE.md) - System design details
-- [Troubleshooting](docs/TROUBLESHOOTING.md) - Problem solving guide
+- [Tuning Guide](docs/TUNING_GUIDE(1).md) - Step-by-step PID optimization
 - [API Reference](docs/API_REFERENCE.md) - Code documentation
 - [Bill of Materials](hardware/BOM.md) - Parts list with links
 
@@ -405,10 +385,8 @@ This project is licensed under the **MIT License** - see [LICENSE](LICENSE) file
 ## 📞 Support
 
 ### Getting Help
-1. Check [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
-2. Read [TUNING_GUIDE.md](docs/TUNING_GUIDE.md)
-3. Review [Architecture](docs/ARCHITECTURE.md)
-4. Open an issue on GitHub
+1. Read [TUNING_GUIDE.md](docs/TUNING_GUIDE(1).md)
+2. Open an issue on GitHub
 
 ### Report Bugs
 - Include: Hardware setup, PID gains, Serial output
@@ -479,7 +457,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 2. **Library Installation** → Install TimerOne
 3. **Upload Code** → Use Arduino IDE
 4. **Calibrate Robot** → Run startup sequence
-5. **Tune PID** → Follow [TUNING_GUIDE.md](docs/TUNING_GUIDE.md)
+5. **Tune PID** → Follow [TUNING_GUIDE.md](docs/TUNING_GUIDE(1).md)
 6. **Enjoy!** → Watch it balance 🎉
 
 ---
