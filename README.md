@@ -469,7 +469,7 @@ See [CHANGELOG.md](CHANGELOG.md) for full history.
 
 ## ⭐ Star History
 
-![Star History](https://api.star-history.com/svg?repos=yourusername/self-balancing-robot&type=Date)
+![Star History](https://api.star-history.com/svg?repos=Rubenjoe/self-balancing-robot&type=Date)
 
 ---
 
